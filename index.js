@@ -1,4 +1,5 @@
 const express = require("express");
+const mongoose = require("mongoose");
 
 var bodyParser = require("body-parser");
 //database
@@ -9,6 +10,12 @@ const database = require("./database");
 const booky = express();
 booky.use(bodyParser.urlencoded({extended: true}));
 booky.use(bodyParser.json());
+
+
+//Establish Database Connection
+mongoose.connect(
+  "mongodb+srv://shashanky1502:shank@shank.synry.mongodb.net/bookyy?retryWrites=true&w=majority"
+).then(()=> console.log("Connection Established!!!!!"));
 
 //GET ALL BOOKS
 /*
