@@ -11,6 +11,7 @@ const database = require("./database");
 const BookModel = require("./database/book");
 const AuthorModel = require("./database/author");
 const PublicationModel = require("./database/publication");
+const { json } = require("express");
 
 
 //initialize express
@@ -21,7 +22,7 @@ booky.use(bodyParser.json());
 
 //Establish Database Connection
 mongoose.connect(
-  process.env.MONGO_URL
+  process.env.MONGO_URL     // url in .env file
 ).then(()=> console.log("Connection Established!!!!!"));
 
 //GET ALL BOOKS
@@ -69,10 +70,10 @@ Methods         GET
 
 booky.get("/c/:category", async (req,res)=> {
 
-const getSpecificBook = await BookModel.findOne({category: req.params.category});
-//If no specific book is returned the , the findne func returns null, and to execute the not
+const getSpecificBook = await BookModel.find({category: req.params.category});
+//If no specific book is returned then , the findone func returns null, and to execute the not
 //found property we have to make the condn inside if true, !null is true.
-if(!getSpecificBook) {
+if(getSpecificBook.length==0) {           //find function returns all the data which include the Parameter
   return res.json({
     error: `No book found for category of ${req.params.category}`
   });
@@ -86,17 +87,17 @@ return res.json({book: getSpecificBook});
 
 booky.get("/lang/:langu", async (req,res) => {
 
-    const getSpecificBook = await BookModel.findOne({language: req.params.langu});
+    const getSpecificBook = await BookModel.find({language: req.params.langu});
 
-    if(!getSpecificBook) {
+    if(getSpecificBook.length==0) {
         return res.json({
             error: `No book found for language ${req.params.langu}`
         });
     }
 
-    return res.json({getSpecificBook})
+    return res.json({book:getSpecificBook});
 });
-
+// ------------------------------------------------------------------------------------------------------------------------------------
 //GET ALL AUTHORS
 /*
 Route           /author
@@ -106,8 +107,8 @@ Parameter       NONE
 Methods         GET
 */
 booky.get("/author",async (req, res)=> {
-  const getAllAuthors = AuthorModel.find();
-  return res.json(getAllAuthors);
+  const getAllAuthors = await AuthorModel.find();
+  return res.json({getAllAuthors});
 });
 
 //GET ALL AUTHORS BASED ON A BOOK
@@ -120,9 +121,9 @@ Methods         GET
 */
 
 booky.get("/author/book/:isbn",async (req,res)=> {
-  const getSpecificAuthor = await AuthorModel.findOne({books: req.params.isbn});
+  const getSpecificAuthor = await AuthorModel.find({books: req.params.isbn});
 
-if(!getSpecificAuthor) {
+if(getSpecificAuthor.length==0) {
   return res.json({
     error: `No author found for isbn of ${req.params.isbn}`
   });
@@ -133,61 +134,41 @@ return res.json({authors: getSpecificAuthor});
 
 //GET ALL PUBLICATIONS
 /*
-Route           /publications
+Route           /pub
 Description     Get all publications
 Access          Public
 Parameter       NONE
 Methods         GET
 */
 
-booky.get("/publications", (req,res) => {
-  const getAllPublications = PublicationModel.find();
-  return res.json(getAllPublications);
+booky.get("/publications", async (req,res) => {
+  const getAllPublications = await PublicationModel.find();
+  return res.json({getAllPublications});
 });
 
 
 //Assignment------------------------------------------------------------------------------------------------------------------------------------------
 // to get specific publication - ASSIGNMENT
 /*
-Route           /p/books
+Route           /pub/book
 Description     Get specification publications
 Access          Public
 Parameter       NONE
 Methods         GET
 */
-booky.get("/publication/book/:isbn", async(req, res) => {
-  const getSpecificPublication = await PublicationModel.findOne({ publication: req.params.isbn });
-  if (!getSpecificPublication.length) {
+booky.get("/pub/:book", async (req, res) => {
+  const getSpecificPublication = await PublicationModel.findOne({books : req.params.book})
+  //If no specific book is returned then , the findone func returns null, and to execute the not
+//found property we have to make the condn inside if true, !null is true.
+  if (!getSpecificPublication) {
       return res.json({
-          error: `No publication found for isbn of ${req.params.isbn}`
+          error: `No publication found for isbn of ${req.params.book}`
       });
   }
 
   return res.json({ publication: getSpecificPublication });
 });
 
-
-// to get a list of publications based on books
-/*
-Route           /b/book
-Description     Get specific publications based on book
-Access          Public
-Parameter       book
-Methods         GET
-*/
-
-booky.get("/pub/:book", async(req, res) => {
-  const getSpecificPublication = await PublicationModel.findOne({ publication: req.params.book });
-
-  if (!getSpecificPublication.length) {
-      return res.json({
-          error: `No publication found for book of ${req.params.book}`
-      });
-  }
-
-  return res.json({ book: getSpecificPublication });
-
-});
 
 //----------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -223,9 +204,12 @@ Methods         POST
 booky.post("/author/new", async (req,res)=> {
   const { newAuthor } = req.body;
 AuthorModel.create(newAuthor);
-  return res.json({authors: database.author, message: "Author was added"});
+  return res.json({authors: newAuthor, message: "Author was added"});
 });
 
+
+
+//Assignment----------------------------------------------------------------------------------------------------------------------------
   //ADD NEW publications
 /*
 Route           /publication/new
@@ -235,11 +219,13 @@ Parameter       NONE
 Methods         POST
 */
 
-booky.post("/publication/new", (req,res)=> {
-  const newPublication = req.body;
-  database.publications.push(newPublication);
-  return res.json({updatedPublications: database.publications});
+booky.post("/publication/new", async (req,res)=> {
+  const {newPublication} = req.body;
+  PublicationModel.create(newPublication)
+  return res.json({Publications: newPublication, message:"publication added"});
 });
+//-------------------------------------------------------------------------------------------------------------------------------------
+
 
 //Update a book title
 /*
@@ -364,7 +350,7 @@ booky.delete("/book/delete/author/:isbn/:authorId", async (req,res)=> {
       {
         bookss: updatedBook,
         authors: updatedAuthor,
-        message: "author was added"
+        message: "author data updated"
       });
 
 });
